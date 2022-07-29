@@ -14,7 +14,7 @@ camIp = argv[1]
 camName = argv[2]
 cam = None
 isShuttingDown = False
-chunkSize = 600 # new file every 10 minutes
+chunkSize = 60 # new file every 1 minute
 logFile = baseDir + '/' + camName + '/log.log'
 
 def log(str):
@@ -59,7 +59,10 @@ def theActualJob():
             log('Empty frame')
         else:
             tn = time()
-            if tn - prevtime >= chunkSize:
+            delta = tn - prevtime
+
+            if delta >= chunkSize:
+                # print(f'{delta}\n')
                 if video != None:
                     video.close()
                     audio.close()
@@ -68,8 +71,12 @@ def theActualJob():
                 log('Starting files: ' + path)
                 video = open(path + '.video', "wb")
                 audio = open(path + '.audio', "wb")
-            if 'type' in meta and meta["type"] == "g711a": audio.write(frame)
-            elif 'frame' in meta: video.write(frame)
+            if 'type' in meta and meta["type"] == "g711a":
+                audio.write(frame)
+            elif 'frame' in meta:
+                video.write(frame)
+            else:
+                log(f'Bad frame: {frame}\n')
 
     log('Starting to grab streams...')
     cam.start_monitor(receiver)
@@ -82,7 +89,7 @@ def syncTime():
 def jobWrapper():
     global cam
     log('Logging in to camera ' + camIp + '...')
-    cam = DVRIPCam(camIp)
+    cam = DVRIPCam(camIp, user="vlad", password="vlad37650")
     if cam.login():
         log('done')
     else:
@@ -98,13 +105,14 @@ def theJob():
             if isShuttingDown:
                 exit(0)
             else:
-                try:
-                    log('Error. Attempting to reboot camera...')
-                    cam.reboot()
-                    log('Waiting for ' + str(rebootWait) + 's for reboot...')
-                    sleep(rebootWait)
-                except (UnicodeDecodeError, ValueError, TypeError):
-                    raise SomethingIsWrongWithCamera('Failed to reboot')
+                log(f'{err}\n')
+                # try:
+                #     log('Error. Attempting to reboot camera...')
+                #     cam.reboot()
+                #     log('Waiting for ' + str(rebootWait) + 's for reboot...')
+                #     sleep(rebootWait)
+                # except (UnicodeDecodeError, ValueError, TypeError):
+                #     raise SomethingIsWrongWithCamera('Failed to reboot')
 
 def main():
     Path(logFile).parent.mkdir(parents=True, exist_ok=True)

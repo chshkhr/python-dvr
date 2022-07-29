@@ -92,7 +92,7 @@ class DVRIPCam(object):
         self.socket = None
         self.packet_count = 0
         self.session = 0
-        self.alive_time = 20
+        self.alive_time = 10
         self.alive = None
         self.alarm = None
         self.alarm_func = None
